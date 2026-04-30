@@ -1,6 +1,5 @@
 'use client'
 
-import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Topic } from '@/types'
 
@@ -21,16 +20,30 @@ const difficultyColor: Record<Topic['difficulty'], { text: string; bg: string }>
 }
 
 function commentCopy(n: number): string {
-  if (n > 30) return `💬 ${n} estudiantes comentaron`
-  if (n > 10) return `💬 ${n} en conversación`
-  if (n > 0)  return `💬 ${n} comentarios · ¿Y tú?`
-  return '💬 Sé el primero en comentar'
+  if (n > 30) return `${n} comentarios`
+  if (n > 10) return `${n} en conversación`
+  if (n > 0)  return `${n} comentarios`
+  return 'Sé el primero'
 }
 
-const pulseKeyframes = `
+const cardStyles = `
 @keyframes climb-pulse {
   0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.5; transform: scale(1.4); }
+  50%       { opacity: 0.5; transform: scale(1.4); }
+}
+.tc-header { padding: 16px 16px 0; display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.tc-body   { padding: 12px 16px; flex: 1; }
+.tc-footer { padding: 12px 16px 16px; display: flex; align-items: center; justify-content: space-between; border-top: 1px solid rgba(226,232,240,0.7); margin-top: 8px; }
+.tc-title  { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; font-weight: 700; color: var(--dark); margin: 0 0 8px 0; line-height: 1.3; font-size: 15px; }
+.tc-preview { opacity: 0; pointer-events: none; transition: opacity 200ms ease; }
+@media (min-width: 640px) {
+  .tc-header { padding: 20px 24px 0; }
+  .tc-body   { padding: 16px 24px; }
+  .tc-footer { padding: 14px 24px 20px; }
+  .tc-title  { font-size: 17px; }
+}
+@media (hover: hover) {
+  .tc-wrap:hover .tc-preview { opacity: 1; }
 }
 `
 
@@ -38,17 +51,16 @@ export default function TopicCard({ topic }: TopicCardProps) {
   const router = useRouter()
   const diff = difficultyColor[topic.difficulty]
   const isActive = topic.commentCount > 20
-  const [hovered, setHovered] = useState(false)
-
-  const firstComment = topic.examples[0] ?? null
+  const initial = topic.title[0].toUpperCase()
 
   return (
     <>
-      <style>{pulseKeyframes}</style>
+      <style>{cardStyles}</style>
       <article
         role="button"
         tabIndex={0}
         aria-label={`Abrir tema: ${topic.title}`}
+        className="tc-wrap"
         onClick={() => router.push(`/topic/${topic.id}`)}
         onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') router.push(`/topic/${topic.id}`) }}
         onMouseEnter={(e) => {
@@ -56,14 +68,12 @@ export default function TopicCard({ topic }: TopicCardProps) {
           el.style.transform = 'translateY(-4px)'
           el.style.boxShadow = '0 12px 32px rgba(79,70,229,0.12)'
           el.style.borderColor = 'rgba(79,70,229,0.3)'
-          setHovered(true)
         }}
         onMouseLeave={(e) => {
           const el = e.currentTarget
           el.style.transform = 'translateY(0)'
           el.style.boxShadow = 'none'
           el.style.borderColor = 'var(--border)'
-          setHovered(false)
         }}
         onFocus={(e) => { e.currentTarget.style.boxShadow = '0 0 0 3px rgba(79,70,229,0.25)' }}
         onBlur={(e) => { e.currentTarget.style.boxShadow = 'none' }}
@@ -81,17 +91,8 @@ export default function TopicCard({ topic }: TopicCardProps) {
           position: 'relative',
         }}
       >
-        {/* Card header with emoji and progress */}
-        <div
-          style={{
-            padding: '20px 20px 0',
-            display: 'flex',
-            alignItems: 'flex-start',
-            justifyContent: 'space-between',
-            gap: '12px',
-          }}
-        >
-          {/* Emoji icon — with optional active indicator */}
+        {/* Card header — circle with initial + active badge + difficulty */}
+        <div className="tc-header">
           <div style={{ position: 'relative', flexShrink: 0 }}>
             <div
               style={{
@@ -102,10 +103,13 @@ export default function TopicCard({ topic }: TopicCardProps) {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontSize: '22px',
+                fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
+                fontSize: '18px',
+                fontWeight: 800,
+                color: 'var(--primary)',
               }}
             >
-              {topic.emoji}
+              {initial}
             </div>
 
             {isActive && (
@@ -148,7 +152,6 @@ export default function TopicCard({ topic }: TopicCardProps) {
             )}
           </div>
 
-          {/* Difficulty badge */}
           <span
             style={{
               fontSize: '11px',
@@ -167,19 +170,8 @@ export default function TopicCard({ topic }: TopicCardProps) {
         </div>
 
         {/* Body */}
-        <div style={{ padding: '16px 20px', flex: 1 }}>
-          <h3
-            style={{
-              fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
-              fontSize: '17px',
-              fontWeight: 700,
-              color: 'var(--dark)',
-              margin: '0 0 8px 0',
-              lineHeight: 1.3,
-            }}
-          >
-            {topic.title}
-          </h3>
+        <div className="tc-body">
+          <h3 className="tc-title">{topic.title}</h3>
           <p
             style={{
               fontFamily: 'Inter, system-ui, sans-serif',
@@ -196,9 +188,10 @@ export default function TopicCard({ topic }: TopicCardProps) {
             {topic.description}
           </p>
 
-          {/* Hover comment preview */}
-          {firstComment && (
+          {/* Comment preview — visible on hover via CSS (desktop only, hover: hover) */}
+          {topic.examples[0] && (
             <div
+              className="tc-preview"
               style={{
                 marginTop: '12px',
                 background: '#F5F3FF',
@@ -213,29 +206,16 @@ export default function TopicCard({ topic }: TopicCardProps) {
                 display: '-webkit-box',
                 WebkitLineClamp: 2,
                 WebkitBoxOrient: 'vertical',
-                opacity: hovered ? 1 : 0,
-                transition: 'opacity 200ms ease',
-                pointerEvents: 'none',
               }}
             >
-              {firstComment}
+              {topic.examples[0]}
             </div>
           )}
         </div>
 
-        {/* Footer */}
-        <div
-          style={{
-            padding: '14px 20px 18px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            borderTop: '1px solid rgba(226,232,240,0.7)',
-            marginTop: '8px',
-          }}
-        >
+        {/* Footer — always visible */}
+        <div className="tc-footer">
           <div style={{ display: 'flex', gap: '14px' }}>
-            {/* Duration */}
             <span
               style={{
                 fontFamily: 'Inter, system-ui, sans-serif',
@@ -252,7 +232,6 @@ export default function TopicCard({ topic }: TopicCardProps) {
               {topic.duration}
             </span>
 
-            {/* Comments — dynamic copy */}
             <span
               style={{
                 fontFamily: 'Inter, system-ui, sans-serif',
@@ -264,7 +243,6 @@ export default function TopicCard({ topic }: TopicCardProps) {
             </span>
           </div>
 
-          {/* Arrow CTA */}
           <div
             style={{
               width: '28px',

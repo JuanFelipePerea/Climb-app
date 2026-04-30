@@ -293,7 +293,7 @@ export default function CommentPlaceholder({ topicId }: CommentPlaceholderProps)
             padding: '32px 0',
           }}
         >
-          Sé el primero en comentar este tema. 👋
+          Sé el primero en comentar este tema.
         </p>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
